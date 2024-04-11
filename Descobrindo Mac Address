@@ -1,1 +1,64 @@
+#include <esp_now.h>
+#include <Wire.h>
+#include <WiFi.h>
 
+struct DataStruct {
+  int integerData;
+  float floatData;
+  bool booleanData;
+};
+
+unsigned long temporizadorUltimaRecepcao = 0;
+DataStruct dataStruct;
+
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+  memcpy(&dataStruct, incomingData, sizeof(dataStruct));
+  temporizadorUltimaRecepcao = millis();
+}
+
+void updateLCDWithData() {
+  Serial.println("Obtido ");
+  Serial.println(" Bytes");
+  String valores = "I:";
+  
+  if (dataStruct.integerData < 10 && dataStruct.integerData >= 0) {
+    valores += "0";
+  }
+  valores += dataStruct.integerData;
+  valores += " F:";
+  
+  if (dataStruct.floatData < 10 && dataStruct.floatData >= 0) {
+    valores += "0";
+  }
+    valores += dataStruct.floatData;
+  valores += " B:";
+  valores += dataStruct.booleanData ? "Verdadeiro" : "Falso";
+  valores += " ";
+  Serial.println(valores);
+}
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("ESPNOW - Comunicacao");
+  Serial.println("Inicializacao");
+  delay(1200);
+  Serial.println("Mestre / Escravo");
+  delay(1000);
+  Serial.println("Este dispositivo eh Escravo");
+  delay(1000);
+  WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("ESP-NOW com Erro");
+    // Considerar reiniciar o dispositivo ou lidar com o erro de inicialização
+  }
+    esp_now_register_recv_cb(OnDataRecv); // Registra a função de recepção de dados
+}
+
+void loop() {
+  if (millis() - temporizadorUltimaRecepcao > 2000) {
+    Serial.println("Tempo limite de recepcao ultrap.");
+    delay(1000); // Aguarda 1 segundo antes de continuar a execução
+  }
+  // Outras funções do loop aqui...
+}
