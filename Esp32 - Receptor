@@ -1,0 +1,66 @@
+#include <Arduino.h>
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Estrutura para receber dados
+// Deve combinar com a estrutura do transmissor
+typedef struct struct_message {
+    bool ledState;
+} struct_message;
+
+// Inicializa a estrutura de mensagem
+struct_message myData;
+
+// Pinos do LED RGB
+const int RED_PIN = 14;
+const int GREEN_PIN = 12;
+const int BLUE_PIN = 13;
+
+// Função para configurar a cor do LED RGB
+void setRGBColor(bool ledState) {
+  if (ledState) {
+    // Acende o LED com a cor desejada
+    digitalWrite(RED_PIN, HIGH);   // Exemplo: Vermelho
+    digitalWrite(GREEN_PIN, LOW);
+    digitalWrite(BLUE_PIN, LOW);
+  } else {
+    // Apaga o LED
+    digitalWrite(RED_PIN, LOW);
+    digitalWrite(GREEN_PIN, LOW);
+    digitalWrite(BLUE_PIN, LOW);
+  }
+}
+
+// Callback quando dados são recebidos
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  setRGBColor(myData.ledState);
+  Serial.print("Dados recebidos: ");
+  Serial.println(myData.ledState ? "LED Ligado" : "LED Desligado");
+}
+
+void setup() {
+  // Inicializa a Serial
+  Serial.begin(115200);
+
+  // Inicializa os pinos do LED como saída
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+
+  // Inicializa o WiFi no modo STA
+  WiFi.mode(WIFI_STA);
+
+  // Inicializa o ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Erro ao inicializar o ESP-NOW");
+    return;
+  }
+
+  // Registra o callback de recebimento
+  esp_now_register_recv_cb(OnDataRecv);
+}
+
+void loop() {
+  // O loop está vazio porque a lógica é tratada no callback de recebimento
+}
