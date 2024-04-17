@@ -1,68 +1,63 @@
-#include <Arduino.h>
-#include <esp_now.h>
-#include <WiFi.h>
+#include <Arduino.h> // Inclui a biblioteca principal do Arduino
+#include <esp_now.h> // Inclui a biblioteca para o ESP-NOW
+#include <WiFi.h>    // Inclui a biblioteca para o WiFi
 
 // Estrutura para enviar dados
-// Deve combinar com a estrutura do receptor
-typedef struct struct_message {
-    bool ledState;
-} struct_message;
+// Deve ser idêntica à estrutura do receptor
+typedef struct mensagem {
+    bool estadoLed; // Variável para armazenar o estado do LED
+} mensagem;
 
-// Inicializa a estrutura de mensagem
-struct_message myData;
+// Cria uma instância da estrutura de mensagem
+mensagem meusDados;
 
-// MAC Address do receptor
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+// Endereço MAC do receptor
+uint8_t enderecoBroadcast[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-// Callback quando os dados são enviados
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nStatus do Envio: ");
+// Função de callback chamada quando os dados são enviados
+void aoEnviarDados(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nStatus do Envio: "); // Imprime o status do envio
   if (status == ESP_NOW_SEND_SUCCESS) {
-    Serial.println("Sucesso");
+    Serial.println("Sucesso"); // Sucesso no envio
   } else {
-    Serial.println("Falha");
+    Serial.println("Falha"); // Falha no envio
   }
 }
 
 void setup() {
-  // Inicializa a Serial
-  Serial.begin(115200);
+  Serial.begin(115200); // Inicializa a comunicação Serial com 115200 bps
 
   // Inicializa o ESP-NOW
   if (esp_now_init() != ESP_OK) {
-    Serial.println("Erro ao inicializar o ESP-NOW");
+    Serial.println("Erro ao inicializar o ESP-NOW"); // Erro na inicialização
     return;
   }
 
-  // Registra o callback de envio
-  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_send_cb(aoEnviarDados); // Registra a função de callback de envio
   
-  // Adiciona o receptor
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
+  // Configura informações do receptor
+  esp_now_peer_info_t informacoesPar;
+  memcpy(informacoesPar.peer_addr, enderecoBroadcast, 6); // Copia o endereço MAC
+  informacoesPar.channel = 0;  // Define o canal como 0
+  informacoesPar.encrypt = false; // Desativa a criptografia
   
-  // Adiciona o par
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Falha ao adicionar o par");
+  // Adiciona o receptor como um par
+  if (esp_now_add_peer(&informacoesPar) != ESP_OK){
+    Serial.println("Falha ao adicionar o par"); // Falha ao adicionar o par
     return;
   }
 
-  // Configura o botão
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Configura o pino do botão como entrada com resistor de pull-up
 }
 
 void loop() {
   // Verifica se o botão foi pressionado
   if (digitalRead(BUTTON_PIN) == LOW) {
-    // Alterna o estado do LED
-    myData.ledState = !myData.ledState;
+    meusDados.estadoLed = !meusDados.estadoLed; // Alterna o estado do LED
 
-    // Envia a mensagem
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    // Envia a estrutura de dados
+    esp_now_send(enderecoBroadcast, (uint8_t *) &meusDados, sizeof(meusDados));
     
-    // Aguarda um pouco para evitar múltiplas leituras
-    delay(200);
+    delay(200); // Aguarda 200ms para evitar leituras múltiplas
   }
 }
