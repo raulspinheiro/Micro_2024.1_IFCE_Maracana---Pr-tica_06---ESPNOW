@@ -1,4 +1,4 @@
-#include <wifi.h>
+#include <WiFi.h>
 //Importante manter as mesmas velocidades de leitura ou update no Terminal Monitor, no Arquivo .in e nos parâmetros deste arquivo
 void setup(){
   Serial.begin(115200);
